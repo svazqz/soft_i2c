@@ -1,4 +1,5 @@
 {
   "name": "soft_i2c",
+  "entry": "src/soft_i2c.c",
   "description": ""
 }
