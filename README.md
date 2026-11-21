@@ -2,6 +2,8 @@
 
 A C library that implements I²C using WiringPi GPIO. It provides bit and byte operations, bus recovery, and device scanning.
 
+[![Validation](https://github.com/svazqz/soft_i2c/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/svazqz/soft_i2c/actions/workflows/ci.yml)
+
 [Quick start](#quick-start) · [Validation](#validation) · [Project layout](#project-layout)
 
 ## Quick start
