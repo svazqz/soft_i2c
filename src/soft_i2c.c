@@ -1,184 +1,216 @@
 /*
- * soft_i2c
- *      This is a basic software implementation of I2C protocol
- *      using WiringPi library GPIO.
- *
- *      Reinoso G. 09/02/2017
+ * Software I2C over WiringPi GPIO.
+ * Original implementation by Reinoso G., 09/02/2017.
  */
-#include<soft_i2c.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
-static i2c_t i2cbus;
+#include <soft_i2c.h>
+#include <stdlib.h>
+#include <wiringPi.h>
 
-int setupI2C() {
-	/* You have to select i2c Freq. in soft_12c.h #define I2C_FREQ 400000
-		(I use 400K). The frecuency has to be the same as you selected in OS.
-		Run raspi-config and activate i2c. Test it running $i2cdetect -y 1
-		Edit /boot/config.txt and add at the end: dtparam=i2c_baudrate=400000
-		see: https://projects.drogon.net/raspberry-pi/wiringpi/i2c-library/
-	*/
-	if (wiringPiSetup () == -1) return 1;
-	i2cbus = i2c_init(9, 8);
-	i2c_reset(i2cbus);
-	usleep(5000);
-	return 0;
-}
+enum { CLOCK_POLL_US = 100, CLOCK_POLLS = 250 };
+#define HALF_PERIOD_US ((500000U + I2C_FREQ - 1U) / I2C_FREQ)
 
-i2c_t* getBus() {
-	return &i2cbus;
-}
+static i2c_t i2cbus = { -1, -1 };
+static int bus_status;
 
-/* Pull: drives the line to level LOW */
-void _i2c_pull(int pin) {
-	pinMode(pin, OUTPUT);
-	digitalWrite(pin, LOW);
-	delayMicroseconds((1e6/I2C_FREQ)/2);
-}
-
-/* Release: releases the line and return line status */
-int _i2c_release(int pin) {
-	pinMode(pin, INPUT);
-	delayMicroseconds((1e6/I2C_FREQ)/2);
-	return digitalRead(pin);
-}
-
-/* In case of clock stretching or busy bus we must wait */
-void _i2c_release_wait(int pin) {
-	pinMode(pin, INPUT);
-	delayMicroseconds((1e6/I2C_FREQ)/2);
-	while (!digitalRead(pin))
-		delayMicroseconds(100);
-	delayMicroseconds((1e6/I2C_FREQ)/2);
-}
-
-/* Initializes software emulated i2c */
-i2c_t i2c_init(int scl, int sda) {
-	i2c_t port;
-
-	port.scl = scl;
-	port.sda = sda;
-	pinMode(scl, INPUT);
-	pinMode(sda, INPUT);
-	pullUpDnControl(scl, PUD_UP);
-	pullUpDnControl(sda, PUD_UP);
-	i2c_reset(port);
-	return port;
-}
-
-/* Start: pull SDA while SCL is up*/
-/* Best practice is to ensure the bus is not busy before start */
-void i2c_start(i2c_t port) {
-	if (!_i2c_release(port.sda))
-		i2c_reset(port);
-		_i2c_release_wait(port.scl);
-
-	_i2c_pull(port.sda);
-	_i2c_pull(port.scl);
-}
-
-/* Stop: release SDA while SCL is up */
-void i2c_stop(i2c_t port) {
-	_i2c_release_wait(port.scl);
-	if (!_i2c_release(port.sda))
-		i2c_reset(port);
-}
-
-/* Reset bus sequence */
-void i2c_reset(i2c_t port) {
-	int i;
-	_i2c_release(port.sda);
-	do {
-		for (i = 0; i < 9; i++) {
-			_i2c_pull(port.scl);
-			_i2c_release(port.scl);
-		}
-	} while (!digitalRead(port.sda));
-	_i2c_pull(port.scl);
-	_i2c_pull(port.sda);
-	i2c_stop(port);
-}
-
-/* Sends 0 or 1:
- * Clock down, send bit, clock up, wait, clock down again
- * In clock stretching, slave holds the clock line down in order
- * to force master to wait before send more data */
-void i2c_send_bit(i2c_t port, int bit) {
-	if (bit)
-		_i2c_release(port.sda);
-	else
-		_i2c_pull(port.sda);
-
-	_i2c_release_wait(port.scl);
-	_i2c_pull(port.scl);
-
-	_i2c_pull(port.sda);
-}
-
-/* Reads a bit from sda */
-int i2c_read_bit(i2c_t port) {
-	int s;
-
-	_i2c_release(port.sda);
-	_i2c_release(port.scl);
-	s = digitalRead(port.sda);
-	_i2c_pull(port.scl);
-	_i2c_pull(port.sda);
-
-	return s;
-}
-
-/* Sends 8 bit in a row, MSB first and reads ACK.
- * Returns I2C_ACK if device ack'ed */
-int i2c_send_byte(i2c_t port, uint8_t byte) {
-	int i;
-
-	for (i = 0; i < 8; i++) {
-		i2c_send_bit(port, byte & 0x80);
-		byte = byte << 1;
-	}
-
-	return i2c_read_bit(port);
-}
-
-/* Reads a byte, MSB first */
-uint8_t i2c_read_byte(i2c_t port) {
-	int _byte = 0x00;
-	int i;
-
-	for (i=0; i<8; i++)
-		_byte = (_byte << 1) | i2c_read_bit(port);
-
-	return _byte;
-}
-
-
-bool i2c_test_slave(uint8_t address) {
-  i2c_start(*getBus());
-  int r = i2c_send_byte(*getBus(), address << 1 | I2C_WRITE);
-  i2c_send_byte(*getBus(), 0x00);
-  i2c_stop(*getBus());
-  return r == 0;
-}
-
-vector_int i2c_search(int from, int to) {
-	vector_int found = {1, 0, (int*)malloc(1 * sizeof(int))};
-
-  for (; from <= to; from++) {
-    if (i2c_test_slave(from)) {
-      // add to addressVector
-			if(found.size > found.capacity){
-				realloc(found.container, sizeof(found.container) * 2);
-				found.capacity = sizeof(found.container) * 2;
-			}
-			found.container[found.size] = from;
-			found.size = found.size + 1;
+int setupI2C(void)
+{
+    i2cbus = (i2c_t){ -1, -1 };
+    if (wiringPiSetup() == -1) {
+        bus_status = I2C_BUS_ERROR;
+        return 1;
     }
-  }
-  return found;
+    i2cbus = i2c_init(9, 8);
+    delayMicroseconds(5000);
+    return bus_status != I2C_OK;
 }
 
-
-#ifdef __cplusplus
+i2c_t *getBus(void)
+{
+    return &i2cbus;
 }
-#endif
+
+int i2c_status(void)
+{
+    return bus_status;
+}
+
+static bool valid_port(i2c_t port)
+{
+    if (port.scl >= 0 && port.sda >= 0 && port.scl != port.sda)
+        return true;
+    bus_status = I2C_BUS_ERROR;
+    return false;
+}
+
+void _i2c_pull(int pin)
+{
+    digitalWrite(pin, LOW);
+    pinMode(pin, OUTPUT);
+    delayMicroseconds(HALF_PERIOD_US);
+}
+
+int _i2c_release(int pin)
+{
+    pinMode(pin, INPUT);
+    delayMicroseconds(HALF_PERIOD_US);
+    return digitalRead(pin);
+}
+
+void _i2c_release_wait(int pin)
+{
+    pinMode(pin, INPUT);
+    delayMicroseconds(HALF_PERIOD_US);
+    for (unsigned int attempt = 0; attempt < CLOCK_POLLS; ++attempt) {
+        if (digitalRead(pin)) {
+            delayMicroseconds(HALF_PERIOD_US);
+            return;
+        }
+        delayMicroseconds(CLOCK_POLL_US);
+    }
+    bus_status = I2C_BUS_ERROR;
+}
+
+i2c_t i2c_init(int scl, int sda)
+{
+    i2c_t port = { scl, sda };
+    if (!valid_port(port))
+        return port;
+
+    pinMode(scl, INPUT);
+    pinMode(sda, INPUT);
+    pullUpDnControl(scl, PUD_UP);
+    pullUpDnControl(sda, PUD_UP);
+    i2c_reset(port);
+    return port;
+}
+
+void i2c_start(i2c_t port)
+{
+    bus_status = I2C_OK;
+    if (!valid_port(port))
+        return;
+
+    if (!_i2c_release(port.sda))
+        i2c_reset(port);
+    if (bus_status != I2C_OK)
+        return;
+
+    _i2c_release_wait(port.scl);
+    if (bus_status == I2C_OK) {
+        _i2c_pull(port.sda);
+        _i2c_pull(port.scl);
+    }
+}
+
+void i2c_stop(i2c_t port)
+{
+    if (!valid_port(port))
+        return;
+    if (bus_status == I2C_OK) {
+        _i2c_pull(port.scl);
+        _i2c_pull(port.sda);
+        _i2c_release_wait(port.scl);
+    }
+    if (!_i2c_release(port.sda))
+        bus_status = I2C_BUS_ERROR;
+    pinMode(port.scl, INPUT);
+}
+
+void i2c_reset(i2c_t port)
+{
+    bus_status = I2C_OK;
+    if (!valid_port(port))
+        return;
+
+    pinMode(port.sda, INPUT);
+    for (unsigned int pulse = 0; pulse < 9; ++pulse) {
+        _i2c_pull(port.scl);
+        _i2c_release_wait(port.scl);
+        if (bus_status != I2C_OK)
+            break;
+    }
+    i2c_stop(port);
+}
+
+void i2c_send_bit(i2c_t port, int bit)
+{
+    if (bus_status != I2C_OK || !valid_port(port))
+        return;
+
+    if (bit) {
+        pinMode(port.sda, INPUT);
+        delayMicroseconds(HALF_PERIOD_US);
+    } else {
+        _i2c_pull(port.sda);
+    }
+    _i2c_release_wait(port.scl);
+    _i2c_pull(port.scl);
+    _i2c_pull(port.sda);
+}
+
+int i2c_read_bit(i2c_t port)
+{
+    if (bus_status != I2C_OK || !valid_port(port))
+        return I2C_BUS_ERROR;
+
+    pinMode(port.sda, INPUT);
+    delayMicroseconds(HALF_PERIOD_US);
+    _i2c_release_wait(port.scl);
+    int bit = bus_status == I2C_OK ? !!digitalRead(port.sda) : I2C_BUS_ERROR;
+    _i2c_pull(port.scl);
+    _i2c_pull(port.sda);
+    return bit;
+}
+
+int i2c_send_byte(i2c_t port, uint8_t value)
+{
+    for (uint8_t mask = 0x80; mask != 0 && bus_status == I2C_OK; mask >>= 1)
+        i2c_send_bit(port, value & mask);
+
+    return i2c_read_bit(port);
+}
+
+uint8_t i2c_read_byte(i2c_t port)
+{
+    uint8_t value = 0;
+    for (unsigned int index = 0; index < 8; ++index) {
+        int bit = i2c_read_bit(port);
+        if (bit == I2C_BUS_ERROR)
+            return 0;
+        value = (uint8_t)((value << 1) | bit);
+    }
+    return value;
+}
+
+bool i2c_test_slave(uint8_t address)
+{
+    if (address < 0x08 || address > 0x77)
+        return false;
+
+    i2c_t port = *getBus();
+    i2c_start(port);
+    int reply = i2c_send_byte(port, (uint8_t)((address << 1) | I2C_WRITE));
+    i2c_stop(port);
+    return reply == I2C_ACK && bus_status == I2C_OK;
+}
+
+vector_int i2c_search(int from, int to)
+{
+    if (from < 0x08 || to > 0x77 || from > to)
+        return (vector_int){ 0, 0, NULL };
+
+    vector_int found = { to - from + 1, 0, NULL };
+    found.container = malloc((size_t)found.capacity * sizeof(*found.container));
+    if (found.container == NULL)
+        return (vector_int){ 0, 0, NULL };
+
+    for (int address = from; address <= to; ++address) {
+        if (i2c_test_slave((uint8_t)address))
+            found.container[found.size++] = address;
+        if (bus_status != I2C_OK) {
+            free(found.container);
+            return (vector_int){ 0, 0, NULL };
+        }
+    }
+    return found;
+}

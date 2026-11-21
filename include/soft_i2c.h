@@ -6,14 +6,12 @@
  *      Reinoso G. 09/02/2017
  */
 
-#ifndef _SOFT_I2C_H
-#define _SOFT_I2C_H
+#ifndef SOFT_I2C_H
+#define SOFT_I2C_H
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
-#include <wiringPi.h>
+#ifndef __cplusplus
+#include <stdbool.h>
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,13 +20,13 @@ extern "C" {
 #define I2C_ACK    0
 #define I2C_NACK   1
 
-#define I2C_FREQ 400000    /* I2C clock max frequency 100kHz */
+#ifndef I2C_FREQ
+#define I2C_FREQ 400000U
+#endif
+#define I2C_OK 0
+#define I2C_BUS_ERROR (-1)
 
 typedef unsigned char byte;
-typedef unsigned short uint16_t;
-#ifndef __cplusplus
-typedef unsigned char bool;
-#endif
 
 typedef struct {
 	int scl;
@@ -43,7 +41,10 @@ typedef struct {
 
 int setupI2C(void);
 
-i2c_t* getBus();
+i2c_t *getBus(void);
+
+/* Check after start, read, or stop. A new start or reset clears the error. */
+int i2c_status(void);
 
 /* Pull: drives the line to level LOW */
 void _i2c_pull(int pin);
@@ -75,15 +76,17 @@ void i2c_send_bit(i2c_t port, int bit);
 int i2c_read_bit(i2c_t port);
 
 /* Sends 8 bit in a row, MSB first and reads ACK.
- * Returns I2C_ACK if device ack'ed */
+ * Returns I2C_ACK, I2C_NACK, or I2C_BUS_ERROR */
 int i2c_send_byte(i2c_t port, uint8_t byte);
 
 /* Reads a byte, MSB first */
 uint8_t i2c_read_byte(i2c_t port);
 
-bool i2c_test_slave(uint8_t);
+bool i2c_test_slave(uint8_t address);
 
-vector_int i2c_search(int, int);
+/* Scan inclusive 7-bit device addresses. Caller frees container. */
+/* On invalid input, bus failure or out of memory, returns an empty vector. */
+vector_int i2c_search(int from, int to);
 
 #ifdef __cplusplus
 }
