@@ -1,9 +1,35 @@
-# soft_i2c
+# ![Soft I²C](docs/readme/banner.svg)
 
-A software I²C controller for Raspberry Pi GPIO using WiringPi. The default bus uses WiringPi pins 9 (SCL) and 8 (SDA). Call setupI2C before using the default bus and serialize access to the GPIO and I²C transaction state.
+A C library that implements I²C using WiringPi GPIO. It provides bit and byte operations, bus recovery, and device scanning.
 
-- Install the WiringPi development headers, then run make to build build/libsoft_i2c.a.
-- Run make test to exercise the driver with simulated GPIO on a development machine.
-- Link applications with libsoft_i2c.a and -lwiringPi. Set WIRINGPI_CFLAGS if the headers are outside the default include paths.
+[Quick start](#quick-start) · [Validation](#validation) · [Project layout](#project-layout)
 
-i2c_status reports a bus error after an operation, including a stuck clock or data line. i2c_send_byte distinguishes ACK, NACK, and bus error. A new start or reset clears the status. The scan accepts an inclusive address range from 0x08 through 0x77. Free the returned vector's container after use.
+## Quick start
+
+Install the WiringPi development headers on your target and run
+
+```sh
+make
+```
+
+Link `build/libsoft_i2c.a` with `-lwiringPi`. Call `setupI2C()` before using the default bus. It uses WiringPi pin 9 for SCL and pin 8 for SDA. Serialize access when sharing a bus.
+
+## Validation
+
+```sh
+make test
+```
+
+The suite simulates GPIO and checks byte transfers, address scanning, and recovery from a stuck line.
+
+## Project layout
+
+| Path | Purpose |
+| --- | --- |
+| [`include/soft_i2c.h`](include/soft_i2c.h) | Public interface and status codes |
+| [`src/soft_i2c.c`](src/soft_i2c.c) | Bus and device operations |
+| [`tests/`](tests/) | Simulated GPIO tests |
+
+## Project notes
+
+Call `i2c_status()` after a bus operation. Free the container returned by `i2c_search()` after reading the results.

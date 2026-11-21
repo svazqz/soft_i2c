@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="project-title project-description">
+  <title id="project-title">Soft I²C</title>
+  <desc id="project-description">A software I²C bus for Raspberry Pi.</desc>
+  <defs>
+    <linearGradient id="background">
+      <stop offset="0" stop-color="#142720"/>
+      <stop offset="1" stop-color="#1C4236"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#9BE8BE" stop-opacity=".23"/>
+      <stop offset="1" stop-color="#9BE8BE" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="21" height="21" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.2" fill="#76BB95" opacity=".38"/>
+    </pattern>
+    <linearGradient id="accent">
+      <stop stop-color="#9BE8BE"/><stop offset="1" stop-color="#76BB95" stop-opacity=".26"/>
+    </linearGradient>
+    <clipPath id="corners"><rect x="1" y="1" width="1198" height="258" rx="26"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#corners)">
+    <rect width="1200" height="260" fill="url(#background)"/>
+    <ellipse cx="1016" cy="125" rx="299" ry="204" fill="url(#glow)"/>
+    <rect x="803" width="397" height="260" fill="url(#dots)" opacity=".51"/>
+    <path d="M769 224h77l41-42h83M807 55h81l27 27h118m-92 94h128l45-45h102" fill="none" stroke="#76BB95" stroke-opacity=".29" stroke-width="2"/>
+    <circle cx="845" cy="224" r="4" fill="#9BE8BE" opacity=".76"/>
+    <circle cx="887" cy="55" r="4" fill="#9BE8BE" opacity=".76"/>
+    <circle cx="1114" cy="131" r="4" fill="#9BE8BE" opacity=".76"/>
+    <rect x="932" y="40" width="170" height="170" rx="31" fill="#142720" fill-opacity=".86" stroke="#76BB95" stroke-opacity=".56"/>
+    <rect x="945" y="53" width="144" height="144" rx="24" fill="none" stroke="#76BB95" stroke-opacity=".23"/>
+    <g transform="translate(948 56) scale(.85)" fill="none" stroke="#9BE8BE" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round"><rect x="45" y="46" width="72" height="72" rx="9"/><rect x="64" y="65" width="34" height="34" rx="5"/><path d="M60 46V28 M81 46V28 M102 46V28 M60 118v18 M81 118v18 M102 118v18 M45 61H27 M45 82H27 M45 103H27 M117 61h18 M117 82h18 M117 103h18"/></g>
+    <rect x="61" y="246" width="125" height="3" rx="1.5" fill="url(#accent)"/>
+  </g>
+
+  <rect x="1" y="1" width="1198" height="258" rx="26" fill="none" stroke="#76BB95" stroke-opacity=".42"/>
+  <g font-family="system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="61" y="55" fill="#9BE8BE" font-size="15" font-weight="750" letter-spacing="3">EMBEDDED</text>
+    <text x="58" y="123" fill="#FCFDFF" font-size="64" font-weight="760" letter-spacing="-1.3">Soft I²C</text>
+    <text x="62" y="165" fill="#D6DFEE" font-size="24">A software I²C bus for Raspberry Pi.</text>
+    <rect x="61" y="193" width="44" height="34" rx="17" fill="#FFFFFF" fill-opacity=".08" stroke="#76BB95" stroke-opacity=".39"/><text x="79" y="215" fill="#E8EDF5" font-size="15" font-weight="600">C</text><rect x="116" y="193" width="105" height="34" rx="17" fill="#FFFFFF" fill-opacity=".08" stroke="#76BB95" stroke-opacity=".39"/><text x="134" y="215" fill="#E8EDF5" font-size="15" font-weight="600">WiringPi</text><rect x="232" y="193" width="139" height="34" rx="17" fill="#FFFFFF" fill-opacity=".08" stroke="#76BB95" stroke-opacity=".39"/><text x="250" y="215" fill="#E8EDF5" font-size="15" font-weight="600">Raspberry Pi</text>
+  </g>
+</svg>
