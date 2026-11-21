@@ -1,0 +1,26 @@
+name: "Validation"
+on:
+  pull_request: {}
+  push:
+    branches:
+      - "master"
+  workflow_dispatch: {}
+permissions:
+  contents: "read"
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+jobs:
+  validate:
+    name: "C unit tests"
+    runs-on: "ubuntu-24.04"
+    timeout-minutes: 8
+    steps:
+      - name: "Check out source"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: "Run hardware-free unit tests"
+        run: "make test"
+      - name: "Run address and undefined behavior sanitizers"
+        run: "make BUILD_DIR=build/sanitized CFLAGS='-O1 -g -Werror -fsanitize=address,undefined -fno-omit-frame-pointer' LDFLAGS='-fsanitize=address,undefined' test"
