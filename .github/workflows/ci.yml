@@ -1,9 +1,11 @@
 name: "Validation"
 on:
-  pull_request: {}
+  pull_request:
+    branches:
+      - "main"
   push:
     branches:
-      - "master"
+      - "main"
   workflow_dispatch: {}
 permissions:
   contents: "read"
