@@ -18,6 +18,15 @@ Link `build/libsoft_i2c.a` with `-lwiringPi`. Call `setupI2C()` before using the
 
 ## Validation
 
+The same Docker command used by GitHub Actions runs the unit tests with
+sanitizers and enforces at least 95% line coverage for the production driver.
+
+```sh
+docker run --rm --network none \
+  --mount "type=bind,source=$PWD,target=/src,readonly" \
+  gcc:14-bookworm sh /src/tests/run-container-tests.sh soft_i2c
+```
+
 ```sh
 make test
 ```

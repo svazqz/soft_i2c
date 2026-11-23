@@ -101,6 +101,22 @@ static void setup_and_bus_recovery(void)
     assert(modes[SCL] == INPUT && modes[SDA] == INPUT);
 }
 
+static void reset_stops_on_a_stuck_clock(void)
+{
+    reset_mock();
+    clock_stuck = 1;
+
+    i2c_reset(port);
+
+    assert(i2c_status() == I2C_BUS_ERROR);
+    assert(clocked_count == 1);
+    assert(modes[SCL] == INPUT && modes[SDA] == INPUT);
+
+    clock_stuck = 0;
+    i2c_reset(port);
+    assert(i2c_status() == I2C_OK && clocked_count == 11);
+}
+
 static void bits_and_bytes(void)
 {
     reset_mock();
@@ -162,6 +178,7 @@ static void scan_inclusive_range(void)
 int main(void)
 {
     setup_and_bus_recovery();
+    reset_stops_on_a_stuck_clock();
     bits_and_bytes();
     scan_inclusive_range();
     return 0;
