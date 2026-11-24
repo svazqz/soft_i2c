@@ -44,3 +44,9 @@ The suite simulates GPIO and checks byte transfers, address scanning, and recove
 ## Project notes
 
 Call `i2c_status()` after a bus operation. Free the container returned by `i2c_search()` after reading the results.
+
+## License
+
+Original project code is available under the [MIT License](LICENSE). Third-party components retain their own terms.
+
+See [third-party notices](THIRD_PARTY_NOTICES.md) for bundled or external dependencies.
